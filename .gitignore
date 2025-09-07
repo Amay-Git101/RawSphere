@@ -1,0 +1,41 @@
+# Node modules
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dependency directories
+.pnpm/
+.yarn/
+.yarn-cache/
+.yarn-integrity
+.yarnrc
+.pnp.*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE/editor folders
+.vscode/
+.idea/
+*.swp
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Optional: coverage reports
+coverage/
+
+# Optional: cache
+.cache/
+.env.local/

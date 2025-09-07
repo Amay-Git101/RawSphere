@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LandingPage } from './components/LandingPage';
 import { LoginPage } from './components/LoginPage';
 import { Dashboard } from './components/Dashboard';
@@ -9,8 +9,17 @@ import { Analytics } from './components/Analytics';
 import { Settings } from './components/Settings';
 import { Sidebar } from './components/Sidebar';
 import { Toaster } from './components/ui/sonner';
+import { supabase } from './lib/supabaseClient';
 
-export type Page = 'landing' | 'login' | 'dashboard' | 'marketplace' | 'add-listing' | 'transactions' | 'analytics' | 'settings';
+export type Page =
+  | 'landing'
+  | 'login'
+  | 'dashboard'
+  | 'marketplace'
+  | 'add-listing'
+  | 'transactions'
+  | 'analytics'
+  | 'settings';
 
 export interface User {
   name: string;
@@ -45,6 +54,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('landing');
   const [user, setUser] = useState<User | null>(null);
   const [loginUserType, setLoginUserType] = useState<'seller' | 'buyer' | null>(null);
+
   const [listings, setListings] = useState<Listing[]>([
     {
       id: '1',
@@ -53,7 +63,7 @@ export default function App() {
       expiryDate: '2026-08-15',
       price: 5000,
       category: 'APIs',
-      seller: 'PharmaCorp Ltd'
+      seller: 'PharmaCorp Ltd',
     },
     {
       id: '2',
@@ -62,7 +72,7 @@ export default function App() {
       expiryDate: '2025-12-20',
       price: 2200,
       category: 'APIs',
-      seller: 'Global Pharma Inc'
+      seller: 'Global Pharma Inc',
     },
     {
       id: '3',
@@ -71,7 +81,7 @@ export default function App() {
       expiryDate: '2027-03-10',
       price: 3500,
       category: 'Excipients',
-      seller: 'MedSupply Co'
+      seller: 'MedSupply Co',
     },
     {
       id: '4',
@@ -80,7 +90,7 @@ export default function App() {
       expiryDate: '2026-01-30',
       price: 1800,
       category: 'APIs',
-      seller: 'BioTech Solutions'
+      seller: 'BioTech Solutions',
     },
     {
       id: '5',
@@ -89,8 +99,8 @@ export default function App() {
       expiryDate: '2025-09-15',
       price: 4200,
       category: 'Excipients',
-      seller: 'Ingredient Masters'
-    }
+      seller: 'Ingredient Masters',
+    },
   ]);
 
   const [transactions] = useState<Transaction[]>([
@@ -102,7 +112,7 @@ export default function App() {
       date: '2024-12-15',
       amount: 4500,
       status: 'Completed',
-      hash: '0x7f8e2c4a9b1d6e3f5a8c2e1b9d4f6a3c8e2b5d7f9c1a4e6b8d2f5a9c3e1b7d4f'
+      hash: '0x7f8e2c4a9b1d6e3f5a8c2e1b9d4f6a3c8e2b5d7f9c1a4e6b8d2f5a9c3e1b7d4f',
     },
     {
       id: '2',
@@ -112,7 +122,7 @@ export default function App() {
       date: '2024-12-10',
       amount: 3200,
       status: 'Completed',
-      hash: '0x9a3e1c7f4b6d8e2a5c9f1e4b7d6a8c2e5f3b9d1a7c4e8f2b6d5a9c3e1f7b4d8'
+      hash: '0x9a3e1c7f4b6d8e2a5c9f1e4b7d6a8c2e5f3b9d1a7c4e8f2b6d5a9c3e1f7b4d8',
     },
     {
       id: '3',
@@ -122,7 +132,7 @@ export default function App() {
       date: '2024-12-05',
       amount: 1800,
       status: 'Pending',
-      hash: '0x5c2e8f1b4d7a9c3e6f2b8d1a5c7e9f4b2d6a8c1e5f9b3d7a4c8e2f6b1d9a5c3'
+      hash: '0x5c2e8f1b4d7a9c3e6f2b8d1a5c7e9f4b2d6a8c1e5f9b3d7a4c8e2f6b1d9a5c3',
     },
     {
       id: '4',
@@ -132,8 +142,8 @@ export default function App() {
       date: '2024-11-28',
       amount: 2600,
       status: 'Completed',
-      hash: '0x1f4b8d2a6c9e3f7b1d5a8c4e2f6b9d3a7c1e5f8b4d2a9c6e1f7b3d5a8c2e4f'
-    }
+      hash: '0x1f4b8d2a6c9e3f7b1d5a8c4e2f6b9d3a7c1e5f8b4d2a9c6e1f7b3d5a8c2e4f',
+    },
   ]);
 
   const login = (userData: User) => {
@@ -146,20 +156,58 @@ export default function App() {
     setCurrentPage('login');
   };
 
-  const goHome = () => {
+  const goHome = async () => {
+    await supabase.auth.signOut(); // 🔹 log out from Supabase too
     setUser(null);
     setLoginUserType(null);
     setCurrentPage('landing');
   };
 
-  const addListing = (newListing: Omit<Listing, 'id'>) => {
+  const addListing = (newListing: Omit<Listing, 'id' | 'seller'>) => {
     const listing: Listing = {
       ...newListing,
       id: Date.now().toString(),
-      seller: user?.company || 'Unknown Company'
+      seller: user?.company || 'Unknown Company',
     };
-    setListings(prev => [listing, ...prev]);
+    setListings((prev) => [listing, ...prev]);
   };
+
+  // 🔹 Check for session on load
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const u = session.user;
+        setUser({
+          name: (u.user_metadata as any)?.name || 'Unknown',
+          email: u.email || '',
+          company: (u.user_metadata as any)?.company || '',
+          userType: (u.user_metadata as any)?.userType || 'buyer',
+        });
+        setCurrentPage('dashboard');
+      }
+    });
+
+    // 🔹 Listen for auth changes
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const u = session.user;
+        setUser({
+          name: (u.user_metadata as any)?.name || 'Unknown',
+          email: u.email || '',
+          company: (u.user_metadata as any)?.company || '',
+          userType: (u.user_metadata as any)?.userType || 'buyer',
+        });
+        setCurrentPage('dashboard');
+      } else {
+        setUser(null);
+        setCurrentPage('landing');
+      }
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   if (currentPage === 'landing') {
     return (
@@ -181,24 +229,19 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar 
-        currentPage={currentPage} 
-        onPageChange={setCurrentPage}
-        onGoHome={goHome}
-        user={user}
-      />
-      
+      <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} onGoHome={goHome} user={user} />
+
       <main className="flex-1 overflow-y-auto lg:ml-0 ml-0">
         <div className="lg:p-0 pt-16 lg:pt-0">
           {currentPage === 'dashboard' && <Dashboard user={user} />}
           {currentPage === 'marketplace' && <Marketplace listings={listings} user={user} />}
-          {currentPage === 'add-listing' && user.userType === 'seller' && <AddListing onAddListing={addListing} />}
+          {currentPage === 'add-listing' && user?.userType === 'seller' && <AddListing onAddListing={addListing} />}
           {currentPage === 'transactions' && <Transactions transactions={transactions} user={user} />}
           {currentPage === 'analytics' && <Analytics user={user} />}
           {currentPage === 'settings' && <Settings user={user} />}
         </div>
       </main>
-      
+
       <Toaster />
     </div>
   );
